@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Save Your Smile - Sakura</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,500&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: #000; 
+            overflow: hidden; 
+            font-family: 'Montserrat', sans-serif;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        canvas { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            pointer-events: none; 
+        }
+
+        #bgGlow {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 105, 180, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Popup Styles */
+        #popupContainer {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .popup-box {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 182, 197, 0.1);
+            padding: 50px 80px;
+            border-radius: 40px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            transform: scale(0.95);
+            transition: transform 1s cubic-bezier(0.2, 0, 0.2, 1);
+        }
+
+        .popup-box.active {
+            transform: scale(1);
+        }
+
+        .popup-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 400;
+            font-style: italic;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 50%, #a1c4fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(255, 182, 197, 0.3));
+        }
+
+        .popup-subtitle {
+            color: rgba(255, 182, 197, 0.4);
+            letter-spacing: 5px;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        /* Mouse Trail */
+        .sparkle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: #ff7eb3;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            box-shadow: 0 0 10px #ff00de, 0 0 20px #00d2ff;
+        }
+
+        /* Footer Elements */
+        #controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            opacity: 0;
+            transition: opacity 2s ease;
+            z-index: 10;
+        }
+
+        .regrow-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .regrow-btn:hover {
+            color: rgba(255, 182, 197, 0.6);
+            border-color: rgba(255, 182, 197, 0.3);
+            background: rgba(255, 182, 197, 0.05);
+        }
+
+        .heart-icon {
+            color: rgba(255, 105, 180, 0.2);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bgGlow"></div>
+    <canvas id="treeCanvas"></canvas>
+    <canvas id="petalCanvas"></canvas>
+
+    <div id="popupContainer">
+        <div class="popup-box" id="popupBox">
+            <h1 class="popup-title">save your smile</h1>
+            <p class="popup-subtitle">Bitchhhh!!</p>
+        </div>
+    </div>
+
+    <div id="controls">
+        <button class="regrow-btn" onclick="location.reload()">Re-grow</button>
+        <div class="heart-icon">❤</div>
+    </div>
+
+    <script>
+        const treeCanvas = document.getElementById('treeCanvas');
+        const tCtx = treeCanvas.getContext('2d');
+        const petalCanvas = document.getElementById('petalCanvas');
+        const pCtx = petalCanvas.getContext('2d');
+
+        const pinks = ['#ffb7c5', '#ff91a4', '#ffc0cb', '#f8bbd0'];
+        const blues = ['#00d2ff', '#3a7bd5', '#4fc3f7'];
+
+        function init() {
+            treeCanvas.width = window.innerWidth;
+            treeCanvas.height = window.innerHeight;
+            petalCanvas.width = window.innerWidth;
+            petalCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', init);
+        init();
+
+        // Natural Growing Logic
+        function drawBranch(startX, startY, len, angle, width, depth) {
+            if (depth < 0) return;
+
+            let curLen = 0;
+            const speed = 2 + (depth * 0.5);
+
+            function grow() {
+                if (curLen >= len) {
+                    const endX = startX + Math.sin(angle * Math.PI / 180) * -len;
+                    const endY = startY + Math.cos(angle * Math.PI / 180) * -len;
+
+                    // Blossoms at tips (Minimal & Aesthetic)
+                    if (depth < 3) {
+                        const count = depth === 0 ? 3 : 1;
+                        for(let i=0; i<count; i++) {
+                            const offX = Math.random() * 16 - 8;
+                            const offY = Math.random() * 16 - 8;
+                            const size = Math.random() * 2 + 1.5;
+                            const isBlue = Math.random() > 0.85;
+                            
+                            tCtx.beginPath();
+                            tCtx.save();
+                            tCtx.translate(endX, endY);
+                            tCtx.arc(offX, offY, size, 0, Math.PI * 2);
+                            tCtx.fillStyle = isBlue ? blues[Math.floor(Math.random()*blues.length)] : pinks[Math.floor(Math.random()*pinks.length)];
+                            tCtx.shadowBlur = 10;
+                            tCtx.shadowColor = tCtx.fillStyle;
+                            tCtx.fill();
+                            tCtx.restore();
+                        }
+                    }
+
+                    if (depth > 0) {
+                        // Natural upward split
+                        const subCount = 2;
+                        for(let i=0; i<subCount; i++) {
+                            const side = i === 0 ? -1 : 1;
+                            const nextAngle = angle + (side * (Math.random() * 35 + 15));
+                            const nextLen = len * (0.7 + Math.random() * 0.2);
+                            setTimeout(() => {
+                                drawBranch(endX, endY, nextLen, nextAngle, width * 0.7, depth - 1);
+                            }, 150 + depth * 20);
+                        }
+                    }
+                    return;
+                }
+
+                tCtx.beginPath();
+                tCtx.strokeStyle = '#120a05';
+                tCtx.lineWidth = width;
+                tCtx.lineCap = 'round';
+                
+                const sX = startX + Math.sin(angle * Math.PI / 180) * -curLen;
+                const sY = startY + Math.cos(angle * Math.PI / 180) * -curLen;
+                curLen += speed;
+                const eX = startX + Math.sin(angle * Math.PI / 180) * -curLen;
+                const eY = startY + Math.cos(angle * Math.PI / 180) * -curLen;
+
+                tCtx.moveTo(sX, sY);
+                tCtx.lineTo(eX, eY);
+                tCtx.stroke();
+
+                requestAnimationFrame(grow);
+            }
+            grow();
+        }
+
+        // Falling Petals
+        let petals = [];
+        class Petal {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * petalCanvas.width;
+                this.y = -20;
+                this.size = Math.random() * 3 + 2;
+                this.speedY = Math.random() * 0.6 + 0.4;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.rot = Math.random() * 360;
+                this.color = Math.random() > 0.85 ? blues[0] : pinks[0];
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX + Math.sin(this.y/50) * 0.5;
+                this.rot += 1;
+                if (this.y > petalCanvas.height) this.reset();
+            }
+            draw() {
+                pCtx.save();
+                pCtx.translate(this.x, this.y);
+                pCtx.rotate(this.rot * Math.PI/180);
+                pCtx.beginPath();
+                pCtx.ellipse(0, 0, this.size, this.size * 1.5, 0, 0, Math.PI*2);
+                pCtx.fillStyle = this.color;
+                pCtx.fill();
+                pCtx.restore();
+            }
+        }
+        for(let i=0; i<25; i++) petals.push(new Petal());
+
+        function animatePetals() {
+            pCtx.clearRect(0, 0, petalCanvas.width, petalCanvas.height);
+            petals.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animatePetals);
+        }
+
+        // Mouse Trail
+        window.addEventListener('mousemove', (e) => {
+            const s = document.createElement('div');
+            s.className = 'sparkle';
+            s.style.left = e.clientX + 'px';
+            s.style.top = e.clientY + 'px';
+            document.body.appendChild(s);
+            setTimeout(() => {
+                s.style.opacity = '0';
+                s.style.transform = 'scale(0) translateY(10px)';
+                setTimeout(() => s.remove(), 800);
+            }, 50);
+        });
+
+        // Initialize Everything
+        window.onload = () => {
+            // Start Growth
+            const centerX = window.innerWidth / 2;
+            const bottomY = window.innerHeight - 20;
+            drawBranch(centerX, bottomY, 160, 0, 18, 9);
+            
+            // Branch at base like reference
+            setTimeout(() => {
+                drawBranch(centerX, bottomY - 100, 70, -45, 8, 5);
+            }, 1000);
+
+            animatePetals();
+
+            // Popup Logic
+            setTimeout(() => {
+                const container = document.getElementById('popupContainer');
+                const box = document.getElementById('popupBox');
+                container.style.opacity = '1';
+                box.classList.add('active');
+
+                setTimeout(() => {
+                    container.style.opacity = '0';
+                    box.classList.remove('active');
+                    document.getElementById('controls').style.opacity = '1';
+                }, 3000);
+            }, 5000);
+        };
+    </script>
+</body>
+</html>

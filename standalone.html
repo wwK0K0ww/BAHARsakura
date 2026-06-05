@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Save Your Smile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Great+Vibes&family=Montserrat:wght@300&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; background: black; overflow: hidden; font-family: 'Montserrat', sans-serif; }
+        canvas { display: block; position: fixed; inset: 0; }
+        .popup-bg {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 105, 180, 0.2);
+            box-shadow: 0 0 40px rgba(255, 105, 180, 0.2);
+            border-radius: 20px;
+            padding: 40px 60px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease;
+            pointer-events: auto;
+        }
+        .popup-active { opacity: 1; transform: translateY(0); }
+        .popup-title {
+            font-family: 'Great_Vibes', cursive;
+            font-size: 4rem;
+            background: linear-gradient(to right, #f472b6, #d8b4fe, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 182, 197, 0.3);
+        }
+        .magic-particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: #f472b6;
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 10px #ff00de;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas for the Tree -->
+    <canvas id="treeCanvas"></canvas>
+    <!-- Canvas for falling petals -->
+    <canvas id="petalCanvas"></canvas>
+
+    <!-- Background Glow -->
+    <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-pink-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <!-- Pop-up Container -->
+    <div id="popupOverlay" class="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+        <div id="popup" class="popup-bg">
+            <h1 class="popup-title">save your smile</h1>
+            <p class="text-pink-300/40 mt-4 tracking-[0.3em] text-[10px] uppercase">just for you</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="fixed bottom-10 left-0 w-full flex flex-col items-center gap-4 z-20 opacity-0 transition-opacity duration-1000" id="footer">
+        <button onclick="location.reload()" class="px-4 py-1.5 rounded-full border border-pink-500/10 text-pink-500/20 text-[10px] uppercase tracking-[0.3em] hover:text-pink-500/50 hover:border-pink-500/30 transition-all duration-700">Re-grow</button>
+    </div>
+
+    <script>
+        // --- SAKURA TREE LOGIC ---
+        const treeCanvas = document.getElementById('treeCanvas');
+        const tCtx = treeCanvas.getContext('2d');
+        const pinkColors = ['#ffb7c5', '#ff91a4', '#ffc0cb'];
+        const blueColors = ['#00d2ff', '#4fc3f7', '#81d4fa'];
+
+        function resize() {
+            treeCanvas.width = window.innerWidth;
+            treeCanvas.height = window.innerHeight;
+            petalCanvas.width = window.innerWidth;
+            petalCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function drawBranch(startX, startY, targetLen, angle, branchWidth, depth) {
+            if (depth < 0) return;
+            let currentLen = 0;
+            const step = 3;
+
+            function animate() {
+                if (currentLen >= targetLen) {
+                    const endX = startX + Math.sin(angle * Math.PI / 180) * -targetLen;
+                    const endY = startY + Math.cos(angle * Math.PI / 180) * -targetLen;
+
+                    if (depth < 3) {
+                        const numBlossoms = depth === 0 ? 3 : 1;
+                        for (let i = 0; i < numBlossoms; i++) {
+                            const petalX = Math.random() * 15 - 7.5;
+                            const petalY = Math.random() * 15 - 7.5;
+                            const size = Math.random() * 2 + 1.5;
+                            const isBlue = Math.random() > 0.85;
+                            tCtx.beginPath();
+                            tCtx.save();
+                            tCtx.translate(endX, endY);
+                            tCtx.arc(petalX, petalY, size, 0, Math.PI * 2);
+                            tCtx.fillStyle = isBlue ? blueColors[Math.floor(Math.random() * blueColors.length)] : pinkColors[Math.floor(Math.random() * pinkColors.length)];
+                            tCtx.shadowBlur = 8;
+                            tCtx.shadowColor = tCtx.fillStyle;
+                            tCtx.fill();
+                            tCtx.restore();
+                        }
+                    }
+
+                    if (depth > 0) {
+                        const subBranches = 2;
+                        for (let i = 0; i < subBranches; i++) {
+                            const bias = i === 0 ? -1 : 1;
+                            const nextAngle = angle + (bias * (Math.random() * 40 + 10));
+                            const nextLen = targetLen * (0.7 + Math.random() * 0.2);
+                            setTimeout(() => {
+                                drawBranch(endX, endY, nextLen, nextAngle, branchWidth * 0.75, depth - 1);
+                            }, 100 + depth * 20);
+                        }
+                    }
+                    return;
+                }
+
+                tCtx.beginPath();
+                tCtx.strokeStyle = '#1a0f08';
+                tCtx.lineWidth = branchWidth;
+                tCtx.lineCap = 'round';
+                const sX = startX + Math.sin(angle * Math.PI / 180) * -currentLen;
+                const sY = startY + Math.cos(angle * Math.PI / 180) * -currentLen;
+                currentLen += step;
+                const eX = startX + Math.sin(angle * Math.PI / 180) * -currentLen;
+                const eY = startY + Math.cos(angle * Math.PI / 180) * -currentLen;
+                tCtx.moveTo(sX, sY);
+                tCtx.lineTo(eX, eY);
+                tCtx.stroke();
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // --- FALLING PETALS LOGIC ---
+        const petalCanvas = document.getElementById('petalCanvas');
+        const pCtx = petalCanvas.getContext('2d');
+        let petals = [];
+
+        class Petal {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * petalCanvas.width;
+                this.y = -20;
+                this.size = Math.random() * 3 + 2;
+                this.speedY = Math.random() * 0.5 + 0.3;
+                this.speedX = Math.random() * 0.8 - 0.4;
+                this.rotation = Math.random() * 360;
+                this.color = Math.random() > 0.85 ? blueColors[0] : pinkColors[0];
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX + Math.sin(this.y / 50);
+                this.rotation += 0.5;
+                if (this.y > petalCanvas.height) this.reset();
+            }
+            draw() {
+                pCtx.save();
+                pCtx.translate(this.x, this.y);
+                pCtx.rotate(this.rotation * Math.PI / 180);
+                pCtx.beginPath();
+                pCtx.ellipse(0, 0, this.size, this.size * 1.5, 0, 0, Math.PI * 2);
+                pCtx.fillStyle = this.color;
+                pCtx.fill();
+                pCtx.restore();
+            }
+        }
+
+        for (let i = 0; i < 25; i++) petals.push(new Petal());
+
+        function animatePetals() {
+            pCtx.clearRect(0, 0, petalCanvas.width, petalCanvas.height);
+            petals.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animatePetals);
+        }
+
+        // --- MOUSE TRAIL ---
+        window.addEventListener('mousemove', (e) => {
+            const p = document.createElement('div');
+            p.className = 'magic-particle';
+            p.style.left = e.clientX + 'px';
+            p.style.top = e.clientY + 'px';
+            document.body.appendChild(p);
+            setTimeout(() => {
+                p.style.opacity = '0';
+                p.style.transform = 'scale(0)';
+                setTimeout(() => p.remove(), 1000);
+            }, 100);
+        });
+
+        // --- INITIALIZE ---
+        setTimeout(() => {
+            drawBranch(treeCanvas.width / 2, treeCanvas.height - 20, 150, 0, 15, 9);
+            animatePetals();
+        }, 500);
+
+        // Pop-up logic
+        setTimeout(() => {
+            document.getElementById('popup').classList.add('popup-active');
+            setTimeout(() => {
+                document.getElementById('popup').classList.remove('popup-active');
+                document.getElementById('footer').style.opacity = '1';
+            }, 3000);
+        }, 4000);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#050505] text-white;
+    margin: 0;
+    overflow: hidden;
+  }
+}
+
+@layer utilities {
+  .text-neon-pink {
+    text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00de, 0 0 30px #ff00de, 0 0 40px #ff00de;
+  }
+  
+  .text-neon-blue {
+    text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #00d2ff, 0 0 30px #00d2ff, 0 0 40px #00d2ff;
+  }
+
+  .glow-filter {
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+}
+
+canvas {
+  display: block;
+}
